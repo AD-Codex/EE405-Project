@@ -29,16 +29,12 @@ void setup() {
 }
 
 void loop() {
-//  Serial.println(F_R_RPWM);
-  nh.spinOnce();
-//  delay(10);
   
-  Wheel_move(move_state, move_linear_x, move_angular_z*255);
-//  char read_data[20];
-//  sprintf(read_data, "arduino return: %d", fn_return);
-//  ros_log(read_data);
-
-
+  nh.spinOnce();
+  
+  Wheel_move(move_state, move_linear_x, move_angular_z);
+  delay(10);
+  
 }
 
 
@@ -48,7 +44,7 @@ void onTwist(const geometry_msgs::Twist &msg) {
   move_angular_z = msg.angular.z;
 
   char read_data[40];
-  sprintf(read_data, "linear_x:%d state:%d anguler_z:%d", move_linear_x, move_state, move_angular_z);
+  sprintf(read_data, "state:%d linear_x:%d anguler_z:%d", move_state, move_linear_x, move_angular_z);
   ros_log(read_data);  
 }
 

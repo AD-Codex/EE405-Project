@@ -83,6 +83,41 @@ int Wheel_move(int move_state, int linear_x, int angular_z){
       
       B_R_RPWM = linear_x;
       B_R_LPWM = 0;
+
+      if ( angular_z > 0) {
+        F_R_RPWM = F_R_RPWM + angular_z;
+        if ( F_L_LPWM - angular_z > 0){
+          F_L_LPWM = F_L_LPWM - angular_z;
+        }
+        else {
+          F_L_LPWM = 0;
+        }
+        B_R_RPWM = B_R_RPWM + angular_z;
+        if ( B_L_RPWM - angular_z > 0) {
+          B_L_RPWM = B_L_RPWM - angular_z;
+        }
+        else {
+          B_L_RPWM = 0;
+        }
+      }
+      else if ( angular_z < 0){
+        F_L_LPWM = F_L_LPWM - angular_z;
+        if ( F_R_RPWM + angular_z > 0) {
+          F_R_RPWM = F_R_RPWM + angular_z;
+        }
+        else {
+          F_R_RPWM = 0;
+        }        
+        B_L_RPWM = B_L_RPWM - angular_z;
+        if ( B_R_RPWM + angular_z > 0) {
+          B_R_RPWM = B_R_RPWM + angular_z;
+        }
+        else {
+          B_R_RPWM = 0;
+        }
+        
+      }
+      
     }
     else if ( linear_x < 0) {      
       F_L_RPWM = -linear_x;
@@ -96,6 +131,16 @@ int Wheel_move(int move_state, int linear_x, int angular_z){
       
       B_R_RPWM = 0;
       B_R_LPWM = -linear_x;
+
+      if ( angular_z > 0) {
+        F_R_LPWM = F_R_LPWM + angular_z;
+        B_R_LPWM = B_R_LPWM + angular_z;
+      }
+      else if ( angular_z < 0){
+        F_L_RPWM = F_L_RPWM - angular_z;
+        B_L_LPWM = B_L_LPWM - angular_z;
+      }
+      
     }
     else {
       F_L_RPWM = 0;
@@ -106,35 +151,35 @@ int Wheel_move(int move_state, int linear_x, int angular_z){
       B_L_LPWM = 0;
       B_R_RPWM = 0;
       B_R_LPWM = 0;
+
+      if ( angular_z > 0) {
+        F_L_RPWM = angular_z * 255/100;
+        F_L_LPWM = 0;
+        
+        F_R_RPWM = angular_z * 255/100;
+        F_R_LPWM = 0;
+        
+        B_L_RPWM = 0;
+        B_L_LPWM = angular_z * 255/100;
+        
+        B_R_RPWM = angular_z * 255/100;
+        B_R_LPWM = 0;
+      }
+      else if ( angular_z < 0) {
+        F_L_RPWM = 0;
+        F_L_LPWM = -angular_z * 255/100;
+        
+        F_R_RPWM = 0;
+        F_R_LPWM = -angular_z * 255/100;
+        
+        B_L_RPWM = -angular_z * 255/100;
+        B_L_LPWM = 0;
+        
+        B_R_RPWM = 0;
+        B_R_LPWM = -angular_z * 255/100;
+      }
     }
 
-    if ( angular_z > 0) {
-      F_L_RPWM = angular_z;
-      F_L_LPWM = 0;
-      
-      F_R_RPWM = angular_z;
-      F_R_LPWM = 0;
-      
-      B_L_RPWM = 0;
-      B_L_LPWM = angular_z;
-      
-      B_R_RPWM = angular_z;
-      B_R_LPWM = 0;
-    }
-    else if ( angular_z < 0) {
-      F_L_RPWM = 0;
-      F_L_LPWM = -angular_z;
-      
-      F_R_RPWM = 0;
-      F_R_LPWM = -angular_z;
-      
-      B_L_RPWM = -angular_z;
-      B_L_LPWM = 0;
-      
-      B_R_RPWM = 0;
-      B_R_LPWM = -angular_z;
-    }
-    
     
   }
 
@@ -154,42 +199,5 @@ int Wheel_move(int move_state, int linear_x, int angular_z){
     
   analogWrite( B_R_DRIVER_LPWM , B_R_LPWM);
   analogWrite( B_R_DRIVER_RPWM , B_R_RPWM);
-  
-  delay(10);
-  
-}
-
-
-void move_forward(int move_speed){
-  int pwm_speed = 0;
-
-  if ( move_speed >=0 && move_speed <=100) {
-    pwm_speed = move_speed*(255/100);
-  }
-
-  F_L_RPWM = 0;
-  F_L_LPWM = pwm_speed;
-  F_R_RPWM = pwm_speed;
-  F_R_LPWM = 0;
-  B_L_RPWM = 0;
-  B_L_LPWM = pwm_speed;
-  B_R_RPWM = pwm_speed;
-  B_R_LPWM = 0;
-
-  analogWrite( F_L_DRIVER_RPWM , F_L_RPWM);
-  analogWrite( F_L_DRIVER_LPWM , F_L_LPWM);
-
-  analogWrite( F_R_DRIVER_LPWM , F_R_LPWM);
-  analogWrite( F_R_DRIVER_RPWM , F_R_RPWM );
-  
-  analogWrite( B_L_DRIVER_RPWM , B_L_RPWM);
-  analogWrite( B_L_DRIVER_LPWM , B_L_LPWM);
-
-  analogWrite( B_R_DRIVER_LPWM , B_R_LPWM);
-  analogWrite( B_R_DRIVER_RPWM , B_R_RPWM);
-
-  digitalWrite( F_L_DRIVER_EN, HIGH);
-  digitalWrite( F_R_DRIVER_EN, HIGH);
-  digitalWrite( B_L_DRIVER_EN, HIGH);
-  digitalWrite( B_R_DRIVER_EN, HIGH);
+    
 }
