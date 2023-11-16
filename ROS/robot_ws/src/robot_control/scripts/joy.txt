@@ -1,0 +1,74 @@
+# Teleop configuration for PS4 joystick using the x-pad configuration.
+# Left thumb-stick up/down for velocity, left/right for twist
+# Left shoulder button for enable
+# Right shoulder button for enable-turbo
+#
+#          L1                                       R1
+#          L2                                       R2
+#       _=====_                                  _=====_
+#      / _____ \                                / _____ \
+#    +.-'_____'-.------------------------------.-'_____'-.+
+#   /   |     |  '.        S O N Y           .'  |  _  |   \
+#  / ___| /|\ |___ \                        / ___| /_\ |___ \      (Y)
+# / |      |      | ;                      ; | _         _ ||
+# | | <---   ---> | |                      | ||_|       (_)||  (X)     (B)
+# | |___   |   ___| ;                      ; |___       ___||
+# |\    | \|/ |    /  _      ____      _   \    | (X) |    /|      (A)
+# | \   |_____|  .','" "',  (_PS_)  ,'" "', '.  |_____|  .' |
+# |  '-.______.-' /       \        /       \  '-._____.-'   |
+# |               |  LJ   |--------|  RJ   |                |
+# |              /\       /        \       /\               |
+# |             /  '.___.'          '.___.'  \              |
+# |            /                              \             |
+#  \          /                                \           /
+#   \________/                                  \_________/
+#
+#          ^ x
+#          |
+#          |
+#  y <-----+      Accelerometer axes
+#           \
+#            \
+#             > z (out)
+#
+
+
+// Joy.button
+
+
+# BUTTON         Value
+#   L1             4
+#   L2             6
+#   R1             5
+#   R2             7
+#   B              1
+#   Y              2
+#   A              0
+#   X              3
+#   /\             13
+#   \/             14
+#   <              15
+#   >              16
+#   LJ             11
+#   RJ             12
+#
+
+
+//Joy.axes
+
+
+--------- LJ ---------
+#    sign   axes_num    max_Value
+#     -        0,1         0
+#     /\        1         1.0  
+#     \/        1        -1.0  
+#     <-        0         1.0  
+#     >-        0         -1.0    
+
+--------- RJ ---------
+#    sign   axes_num    max_Value
+#     -        3,4         0
+#     /\        4         1.0  
+#     \/        4        -1.0  
+#     <-        3         1.0  
+#     >-        3         -1.0 

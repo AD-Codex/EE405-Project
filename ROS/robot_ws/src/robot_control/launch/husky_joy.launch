@@ -1,0 +1,7 @@
+<launch>
+    <include file = "$(find husky_gazebo)/launch/empty_world.launch"/>
+
+    <node pkg="joy" type="joy_node" name="joy_node" output="screen"></node>
+    <node pkg="robot_control" type="husky_test.py" name="husky_test" output="screen"></node>
+
+</launch>
