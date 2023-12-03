@@ -27,7 +27,7 @@ t=1
 m=10
 n=10
 
-image_lane = np.array([10,0,0,0,1,1,1,2,2,3])
+image_lane = np.array([0,0,0,0,1,1,1,2,2,3])
 
 weight_for_lane = 10
 
@@ -76,7 +76,7 @@ for i in range (m) :
 
     F[2,0] = P*Kp + I*Ki + D*Kd
 
-    actual_measurements[0] = image_lane[0]
+    actual_measurements[0] = image_lane[0] ##check
     actual_measurements[1] = vector[1]
     actual_measurements[2] = vector[2]
     actual_measurements[3] = vector[3]
@@ -89,7 +89,7 @@ for i in range (m) :
 
     PCM = np.matmul((np.identity(4) - np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), H)), predicted_PCM)
 
-    print(vector)
+    # print(vector)
 
     # vector[0] = image_lane[0]
 
