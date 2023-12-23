@@ -1,13 +1,14 @@
 
 import numpy as np
+import time
 
 wheel_linear_x = 0
 wheel_linear_z = 0
 Wheel_angular_z = 0
 
-Kp = 0.00001
-Ki = 0.0001
-Kd = 0.015
+Kp = 0.0001
+Ki = 0.00001
+Kd = 0.009
 
 P=0
 I=0
@@ -24,7 +25,7 @@ D=0
 E=10
 
 t=1
-m=10
+m=100
 n=10
 
 image_lane = np.array([0,0,0,0,-1,-1,-1,-2,-2,-3])
@@ -55,8 +56,18 @@ ProcessNoice_forPCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 ProcessNoice_forPredictedVector = np.array([[0],[0],[0],[0]])
 measurementNoice = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 
+end_time = 0
+
 
 for i in range (m) :
+
+    strt_time = time.time()
+
+    t = (strt_time - end_time)/1000000000
+
+    F[0][2] = t
+    H[0][2] = t
+    # print(t)
 
     image_error = 0
 
