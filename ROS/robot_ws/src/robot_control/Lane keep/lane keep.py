@@ -6,7 +6,7 @@ wheel_linear_x = 0
 wheel_linear_z = 0
 Wheel_angular_z = 0
 
-Kp = 0.0001
+Kp = 0.01
 Ki = 0.00001
 Kd = 0.009
 
@@ -28,7 +28,16 @@ t=1
 m=100
 n=10
 
-image_lane = np.array([0,0,0,0,-1,-1,-1,-2,-2,-3])
+lane = np.array([[0,0,0,0,1,1,1,2,2,3],
+                [0,0,0,1,1,1,1,2,2,4],
+                [1,1,1,1,1,1,1,2,2,3],
+                [0,0,0,0,1,1,1,2,2,3],
+                [-1,-1,-1,-1,0,0,0,1,1,1],
+                [-2,-2,-2,-2,-1,-1,-1,0,0,1],
+                [-3,-3,-3,-1,0,0,0,1,1,1],
+                [-4,-4,-3,-1,0,0,0,1,1,1],
+                [0,0,0,0,1,1,1,2,2,3],
+                [0,0,0,0,1,1,1,2,2,3]])
 
 weight_for_lane = 10   
 
@@ -60,7 +69,7 @@ end_time = 0
 
 
 for i in range (m) :
-
+    image_lane = lane[i-0]
     strt_time = time.time()
 
     t = (strt_time - end_time)/1000000000
@@ -109,7 +118,9 @@ for i in range (m) :
 
     PCM = np.matmul((np.identity(4) - np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), H)), predicted_PCM)
 
+    print(image_lane)
     print(vector.transpose())
+    print("ssssssssssssssssssssssssssssssssssssss")
 
     # vector[0] = image_lane[0]
 
