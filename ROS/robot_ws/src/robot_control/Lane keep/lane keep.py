@@ -25,7 +25,7 @@ D=0
 E=10
 
 t=1
-m=100
+m=10
 n=10
 
 lane = np.array([[0,0,0,0,1,1,1,2,2,3],
@@ -69,7 +69,7 @@ end_time = 0
 
 
 for i in range (m) :
-    image_lane = lane[i-0]
+    image_lane = lane[i]
     strt_time = time.time()
 
     t = (strt_time - end_time)/1000000000
