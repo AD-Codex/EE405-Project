@@ -10,9 +10,9 @@ wheel_linear_x = 0
 wheel_linear_z = 0
 Wheel_angular_z = 0
 
-Kp = 0.0001
+Kp = 0.01
 Ki = 0.00001
-Kd = 0.009
+Kd = 0.0001
 
 P=0
 I=0
@@ -30,9 +30,9 @@ E=10
 
 t=1
 m=100
-n=10
+n=100
 
-image_lane = np.array([0,0,0,0,-1,-1,-1,-2,-2,-3])
+# image_lane = np.array([0,0,0,0,-1,-1,-1,-2,-2,-3])
 
 weight_for_lane = 10   
 
@@ -63,6 +63,15 @@ measurementNoice = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 end_time = 0
 
 # end of lane keep variables
+
+def connect_points_with_lines(points ):
+
+    # # Convert points to NumPy array
+    points_array = np.array(points, dtype=np.int32).reshape((-1, 1, 2))
+
+    # Draw lines connecting the points
+    cv2.polylines(annotated_frame, points_array, isClosed=1, color=(0, 255, 0), thickness=12)
+
 
 
 def floor_to_nearest_5(number):
@@ -96,6 +105,8 @@ width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 # print(width,height)
 
+
+
 # Loop through the video frames
 while cap.isOpened():
     # Read a frame from the video
@@ -122,9 +133,32 @@ while cap.isOpened():
         # Draw the vertical line on the image
         cv2.line(annotated_frame, (v_line_x_pos, 0), (v_line_x_pos, height), line_color, 5)
 
-
+        points=[]
+        img = np.zeros((width, height), dtype=np.uint8)
         for i in range(int(len(results[0].masks.xy[0]))):
             x1, y1 = results[0].masks.xy[0][i]
+            x1=int(x1)
+            y1=int(y1)
+            points.append((x1,y1))
+            
+            if len(points)>=2:
+                # cv2.line(annotated_frame,points[-1],points[-2],(255,0,0),10)
+                points_array = np.array([points], dtype=np.int32)
+                cv2.polylines(img, [points_array], isClosed=False, color=(255, 0, 0), thickness=10)
+
+                # Find all non-zero pixels (points) in the image
+                # non_zero_points = np.column_stack(np.where(img > 0))
+
+
+                # for point in non_zero_points:
+                #     cv2.circle(annotated_frame, tuple(point), 5, (0, 255, 0), -1)
+
+                # print(non_zero_points)
+
+                # img1 = cv2.resize(img, (640, 480))
+                # cv2.imshow("YOLOv8 ",img)
+
+            
 
             if x1<=v_line_x_pos:
                 left[floor_to_nearest_5(y1)]=x1
@@ -132,6 +166,10 @@ while cap.isOpened():
             else:
                 right[floor_to_nearest_5(y1)]=x1
 
+            
+        # left_list = [left[key] for key in left]
+                
+        # connect_points_with_lines(points)
 
         left=dict(sorted(left.items()))
         right=dict(sorted(right.items()))
@@ -158,64 +196,68 @@ while cap.isOpened():
         n= len(displacement_list)
         image_lane=displacement_list
 
-        # lane keep algorithm
-        for i in range (m) :
+        # lane keep algorithm==============================
+        # for i in range (m) :
 
-            strt_time = time.time()
+        print(image_lane)
 
-            t = (strt_time - end_time)/1000000000
+        strt_time = time.time()
 
-            F[0][2] = t
-            H[0][2] = t
-            # print(t)
+        t = (strt_time - end_time)/1000000000
 
-            image_error = 0
+        F[0][2] = t
+        H[0][2] = t
+        # print(t)
 
-            for j in range (n):
-                image_error = image_error + image_lane[j]*weight_for_lane/(j+1) #weighted sum from the image data
+        image_error = 0
 
-            # Get IMU readings here 
+        for j in range (n):
+            image_error = image_error + image_lane[j]*weight_for_lane/(j+1) #weighted sum from the image data
 
-            # print(image_error)
+        # Get IMU readings here 
 
-            PID_error = PID_error - (pre_IMU - IMU) + image_error
+        # print(image_error)
 
-            # print(PID_error)
+        PID_error = PID_error - (pre_IMU - IMU) + image_error
 
-            # if PID_error < 0 :
-            #     PID_error = 0
+        # print(PID_error)
 
-            P = PID_error
-            I = I + PID_error
-            D = PID_error - pre_PID_error
+        # if PID_error < 0 :
+        #     PID_error = 0
 
-            F[2,0] = P*Kp + I*Ki + D*Kd
-            # print(F[2,0])
+        P = PID_error
+        I = I + PID_error
+        D = PID_error - pre_PID_error
 
-            # print(vector[2])
+        F[2,0] = P*Kp + I*Ki + D*Kd
+        # print(F[2,0])
 
-            actual_measurements[0] = image_lane[0] ##check
-            actual_measurements[1] = vector[1]
-            actual_measurements[2] = vector[2]
-            actual_measurements[3] = vector[3]
+        # print(vector[2])
 
-
-            predicted_vector = np.matmul(F,vector) + ProcessNoice_forPredictedVector
-            predicted_PCM = np.matmul(F, np.matmul(PCM,F.transpose())) + ProcessNoice_forPCM
-
-            # print(vector[0])
-
-            vector = predicted_vector + np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), (actual_measurements - np.matmul(H,predicted_vector)))
-
-            PCM = np.matmul((np.identity(4) - np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), H)), predicted_PCM)
-
-            print(vector.transpose())
-
-            # vector[0] = image_lane[0]
+        actual_measurements[0] = image_lane[0] ##check
+        actual_measurements[1] = vector[1]
+        actual_measurements[2] = vector[2]
+        actual_measurements[3] = vector[3]
 
 
+        predicted_vector = np.matmul(F,vector) + ProcessNoice_forPredictedVector
+        predicted_PCM = np.matmul(F, np.matmul(PCM,F.transpose())) + ProcessNoice_forPCM
 
-            # end of lane keep algorithm
+        # print(vector[0])
+
+        vector = predicted_vector + np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), (actual_measurements - np.matmul(H,predicted_vector)))
+
+        PCM = np.matmul((np.identity(4) - np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), H)), predicted_PCM)
+
+        print(vector.transpose())
+
+        # vector[0] = image_lane[0]
+
+        end_time = time.time()
+
+
+
+        # end of lane keep algorithm
 
 
 
