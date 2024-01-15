@@ -1,6 +1,7 @@
 
 import numpy as np
 import time
+import math
 
 class PIDController:
     def __init__(self, kp, ki, kd, target):
@@ -21,25 +22,26 @@ class PIDController:
         self.prev_error = error
         return output
 
-wheel_linear_x = 0
-wheel_linear_z = 0
-Wheel_angular_z = 0
 
-Kp = 0.01
-Ki = 0.0000
-Kd = 0.00
+Kp_speed = 0.01
+Ki_speed = 0.0000
+Kd_speed = 0.00
 
-P=0.0
-I=0.0
-D=0.0
+Kp_angular = 0.01
+Ki_angular = 0.0000
+Kd_angular = 0.00
+
+Kp_displacement = 0.01
+Ki_displacement = 0.0000
+Kd_displacement = 0.00
 
 x=1.0
-y=10.0
-Vx=0.0
-Vy=10.0
+speed=10.0
+thita=0.0
+angular_velocity=10.0
 
-A=0.0
-B=0.0
+A=0.01
+B=0.01
 F=0.0
 E=10.0
 
@@ -47,6 +49,13 @@ t=1.0
 m=10
 n=10
 
+#These are the input data to the controller 
+given_speed = 100
+given_angle = 0
+given_imu = 0
+
+
+#test lane data
 lane = np.array([[0,0,0,0,1,1,1,2,2,3],
                 [0,0,0,1,1,1,1,2,2,4],
                 [1,1,1,1,1,1,1,2,2,3],
@@ -59,8 +68,7 @@ lane = np.array([[0,0,0,0,1,1,1,2,2,3],
                 [0,0,0,0,1,1,1,2,2,3]])
 
 weight_for_lane = 10   
-
-vector = np.array([[x],[y],[Vx],[Vy]])
+vector = np.array([[x],[speed],[thita],[angular_velocity]])
 
 predicted_vector = np.array([[0],[0],[0],[0]])
 
@@ -73,9 +81,23 @@ image_error = 0
 
 IMU = 0
 pre_IMU = 0
+road_gradient = 0 #get this from map data or camera
 
-F = np.array([[1.0,0.0,t,0.0],[0.0,1.0,0.0,0.0],[B,0.0,A,0.0],[0.0,E,0.0,F]])
-H = np.array([[1,0,t,0],[0,1,0,0],[0,0,0,0],[0,0,0,0]])
+road_gradient = pre_IMU # only when GPS not available 
+
+given_imu = road_gradient - IMU
+
+speed_out = 0
+angular_out = 0
+displacement_out = 0
+
+#PID ===============
+pid_speed = PIDController(Kp_speed, Ki_speed, Kd_speed, given_speed)
+pid_angular = PIDController(Kp_angular, Ki_angular, Kd_angular, given_angle)
+pid_displacement = PIDController(Kp_displacement, Ki_displacement, Kd_displacement, image_error)
+
+F = np.array([[1.0,t*math.sin(thita),0.0,0.0],[0.0,0.0,A,B],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
+H = np.array([[1.0,t*math.sin(thita),0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
 
 PCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 predicted_PCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
@@ -83,13 +105,21 @@ predicted_PCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 ProcessNoice_forPCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 ProcessNoice_forPredictedVector = np.array([[0],[0],[0],[0]])
 measurementNoice = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+given_data = np.array([[F],[speed_out],[given_imu],[angular_out-displacement_out]])
 
 end_time = 0
 
 
+
 for i in range (m) :
+
+    dt = 0.1
+
     image_lane = lane[i]
     strt_time = time.time()
+
+    F = image_lane[0]
+    given_data[0] = F
 
     t = (strt_time - end_time)/1000000000
 
@@ -106,31 +136,22 @@ for i in range (m) :
 
     print(image_error)
 
-    PID_error = pre_PID_error - (pre_IMU - IMU) + image_error
+    pid_displacement.update_target(image_error)
 
     print(PID_error)
 
-    # if PID_error < 0 :
-    #     PID_error = 0
+    road_gradient = pre_IMU # only when GPS not available 
 
-    P = PID_error
-    I = I + PID_error
-    D = PID_error - pre_PID_error
+    given_imu = road_gradient - IMU
 
-    pre_PID_error = PID_error
-
-    F[2,0] = P*Kp + I*Ki + D*Kd
-    print(F[2,0])
-
-    # print(vector[2])
 
     actual_measurements[0] = image_lane[0] ##check
     actual_measurements[1] = vector[1]
-    actual_measurements[2] = vector[2]
+    actual_measurements[2] = given_imu
     actual_measurements[3] = vector[3]
 
 
-    predicted_vector = np.matmul(F,vector) + ProcessNoice_forPredictedVector
+    predicted_vector = np.matmul(F,vector) + ProcessNoice_forPredictedVector + given_data
     predicted_PCM = np.matmul(F, np.matmul(PCM,F.transpose())) + ProcessNoice_forPCM
 
     # print(vector[0])
@@ -143,6 +164,8 @@ for i in range (m) :
     
     vector = predicted_vector + np.matmul(K,displacement)
     PCM = np.matmul((np.identity(4)-np.matmul(K,H)),predicted_PCM)
+
+    pre_IMU = IMU
 
     print(image_lane)
     print(vector.transpose())
