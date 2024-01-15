@@ -7,24 +7,24 @@ wheel_linear_z = 0
 Wheel_angular_z = 0
 
 Kp = 0.01
-Ki = 0.00001
-Kd = 0.009
+Ki = 0.0000
+Kd = 0.00
 
-P=0
-I=0
-D=0
+P=0.0
+I=0.0
+D=0.0
 
-x=1
-y=10
-Vx=0
-Vy=10
+x=1.0
+y=10.0
+Vx=0.0
+Vy=10.0
 
-A=0
-B=0
-D=0
-E=10
+A=0.0
+B=0.0
+F=0.0
+E=10.0
 
-t=1
+t=1.0
 m=10
 n=10
 
@@ -55,7 +55,7 @@ image_error = 0
 IMU = 0
 pre_IMU = 0
 
-F = np.array([[1,0,t,0],[0,1,0,0],[B,0,A,0],[0,E,0,D]])
+F = np.array([[1.0,0.0,t,0.0],[0.0,1.0,0.0,0.0],[B,0.0,A,0.0],[0.0,E,0.0,F]])
 H = np.array([[1,0,t,0],[0,1,0,0],[0,0,0,0],[0,0,0,0]])
 
 PCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
@@ -85,11 +85,11 @@ for i in range (m) :
 
     # Get IMU readings here 
 
-    # print(image_error)
+    print(image_error)
 
-    PID_error = PID_error - (pre_IMU - IMU) + image_error
+    PID_error = pre_PID_error - (pre_IMU - IMU) + image_error
 
-    # print(PID_error)
+    print(PID_error)
 
     # if PID_error < 0 :
     #     PID_error = 0
@@ -98,8 +98,10 @@ for i in range (m) :
     I = I + PID_error
     D = PID_error - pre_PID_error
 
+    pre_PID_error = PID_error
+
     F[2,0] = P*Kp + I*Ki + D*Kd
-    # print(F[2,0])
+    print(F[2,0])
 
     # print(vector[2])
 
@@ -114,9 +116,14 @@ for i in range (m) :
 
     # print(vector[0])
 
-    vector = predicted_vector + np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), (actual_measurements - np.matmul(H,predicted_vector)))
+    S = np.matmul(H,np.matmul(predicted_PCM,H.transpose())) + measurementNoice
+    displacement = actual_measurements - np.matmul(H,predicted_vector)
 
-    PCM = np.matmul((np.identity(4) - np.matmul(np.matmul(predicted_PCM, np.matmul(H.transpose(), (np.matmul(H, np.matmul(predicted_PCM, H.transpose())) + measurementNoice))), H)), predicted_PCM)
+    #kalman gain 
+    K = np.matmul(predicted_PCM,np.matmul(H.transpose(),np.linalg.inv(S)))
+    
+    vector = predicted_vector + np.matmul(K,displacement)
+    PCM = np.matmul((np.identity(4)-np.matmul(K,H)),predicted_PCM)
 
     print(image_lane)
     print(vector.transpose())
