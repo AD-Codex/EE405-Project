@@ -42,7 +42,7 @@ angular_velocity=10.0
 
 A=0.01
 B=0.01
-F=0.0
+J=0.0
 E=10.0
 
 t=1.0
@@ -105,7 +105,7 @@ predicted_PCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 ProcessNoice_forPCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 ProcessNoice_forPredictedVector = np.array([[0],[0],[0],[0]])
 measurementNoice = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
-given_data = np.array([[F],[speed_out],[given_imu],[angular_out-displacement_out]])
+given_data = np.array([[J],[speed_out],[given_imu],[angular_out-displacement_out]])
 
 end_time = 0
 
@@ -118,8 +118,8 @@ for i in range (m) :
     image_lane = lane[i]
     strt_time = time.time()
 
-    F = image_lane[0]
-    given_data[0] = F
+    J = image_lane[0]
+    given_data[0] = J
 
     t = (strt_time - end_time)/1000000000
 
@@ -132,11 +132,27 @@ for i in range (m) :
     for j in range (n):
         image_error = image_error + image_lane[j]*weight_for_lane/(j+1) #weighted sum from the image data
 
-    # Get IMU readings here 
+    
+    #PID given data update
+    # pid_speed.update(given_speed)
+    # pid_angular.update_target(given_angle)
+    # pid_displacement.update_target(image_error)
+
+    #PID outputs 
+    pid_speed_output = pid_speed.update(speed_out, dt)
+    pid_angular_output = pid_angular.update(angular_out, dt)
+    pid_displacement_output = pid_displacement.update(displacement_out, dt)
+
+    speed_out += pid_speed_output   
+    angular_out += pid_angular_output
+    displacement_out += pid_displacement_output
+
+    given_data = np.array([[J],[speed_out],[given_imu],[angular_out-displacement_out]])
+    F = np.array([[1.0,t*math.sin(vector[2]),0.0,0.0],[0.0,0.0,A,B],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
+    H = np.array([[1.0,t*math.sin(vector[2]),0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
 
     print(image_error)
 
-    pid_displacement.update_target(image_error)
 
     print(PID_error)
 
@@ -158,6 +174,11 @@ for i in range (m) :
 
     S = np.matmul(H,np.matmul(predicted_PCM,H.transpose())) + measurementNoice
     displacement = actual_measurements - np.matmul(H,predicted_vector)
+
+    print(S)
+    print(H)
+    print(predicted_PCM)
+    print(F)
 
     #kalman gain 
     K = np.matmul(predicted_PCM,np.matmul(H.transpose(),np.linalg.inv(S)))
