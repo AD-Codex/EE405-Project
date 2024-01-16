@@ -141,7 +141,7 @@ for i in range (m) :
     #PID outputs 
     pid_speed_output = pid_speed.update(speed_out, dt)
     pid_angular_output = pid_angular.update(angular_out, dt)
-    pid_displacement_output = pid_displacement.update(displacement_out, dt)
+    pid_displacement_output = pid_displacement.update(image_error, dt)
 
     speed_out += pid_speed_output   
     angular_out += pid_angular_output
@@ -175,7 +175,7 @@ for i in range (m) :
     S = np.matmul(H,np.matmul(predicted_PCM,H.transpose())) + measurementNoice
     displacement = actual_measurements - np.matmul(H,predicted_vector)
 
-    S_inv = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+    S_inv = np.array([[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0]])
 
     for u in range (4):
         for v in range (4):
