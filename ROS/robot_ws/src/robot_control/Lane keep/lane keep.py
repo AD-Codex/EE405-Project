@@ -119,8 +119,15 @@ for i in range (m) :
     S = np.matmul(H,np.matmul(predicted_PCM,H.transpose())) + measurementNoice
     displacement = actual_measurements - np.matmul(H,predicted_vector)
 
+    S_inv = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+
+    for u in range (4):
+        for v in range (4):
+            if S[u][v] != 0 :
+                S_inv[u][v] = (1/S[u][v])
+
     #kalman gain 
-    K = np.matmul(predicted_PCM,np.matmul(H.transpose(),np.linalg.inv(S)))
+    K = np.matmul(predicted_PCM,np.matmul(H.transpose(),S_inv))
     
     vector = predicted_vector + np.matmul(K,displacement)
     PCM = np.matmul((np.identity(4)-np.matmul(K,H)),predicted_PCM)

@@ -99,7 +99,7 @@ pid_displacement = PIDController(Kp_displacement, Ki_displacement, Kd_displaceme
 F = np.array([[1.0,t*math.sin(thita),0.0,0.0],[0.0,0.0,A,B],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
 H = np.array([[1.0,t*math.sin(thita),0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
 
-PCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+PCM = np.array([[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0]])
 predicted_PCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 
 ProcessNoice_forPCM = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
@@ -147,7 +147,7 @@ for i in range (m) :
     angular_out += pid_angular_output
     displacement_out += pid_displacement_output
 
-    given_data = np.array([[J],[speed_out],[given_imu],[angular_out-displacement_out]])
+    given_data = np.array([[J],[speed_out],[given_imu],[angular_out+displacement_out]])
     F = np.array([[1.0,t*math.sin(vector[2]),0.0,0.0],[0.0,0.0,A,B],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
     H = np.array([[1.0,t*math.sin(vector[2]),0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,1,t],[0.0,0.0,0.0,0.0]])
 
@@ -161,7 +161,7 @@ for i in range (m) :
     given_imu = road_gradient - IMU
 
 
-    actual_measurements[0] = image_lane[0] ##check
+    actual_measurements[0] = image_error ##check
     actual_measurements[1] = vector[1]
     actual_measurements[2] = given_imu
     actual_measurements[3] = vector[3]
@@ -175,13 +175,25 @@ for i in range (m) :
     S = np.matmul(H,np.matmul(predicted_PCM,H.transpose())) + measurementNoice
     displacement = actual_measurements - np.matmul(H,predicted_vector)
 
-    print(S)
-    print(H)
-    print(predicted_PCM)
-    print(F)
+    S_inv = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+
+    for u in range (4):
+        for v in range (4):
+            if S[u][v] != 0 :
+                S_inv[u][v] = (1/S[u][v])
+
+    
+
+    # print(S)
+    # print(S_inv)
+    # # print(H)
+    # print(predicted_PCM)
+    # print(F)
+    # print(PCM)
 
     #kalman gain 
-    K = np.matmul(predicted_PCM,np.matmul(H.transpose(),np.linalg.inv(S)))
+    # K = np.matmul(predicted_PCM,np.matmul(H.transpose(),np.linalg.inv(S)))
+    K = np.matmul(predicted_PCM,np.matmul(H.transpose(),S_inv))
     
     vector = predicted_vector + np.matmul(K,displacement)
     PCM = np.matmul((np.identity(4)-np.matmul(K,H)),predicted_PCM)
