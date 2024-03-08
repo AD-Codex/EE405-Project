@@ -10,9 +10,9 @@ wheel_linear_x = 0
 wheel_linear_z = 0
 Wheel_angular_z = 0
 
-Kp = 0.0001
+Kp = 0.01
 Ki = 0.00001
-Kd = 0.009
+Kd = 0.0001
 
 P=0
 I=0
@@ -30,9 +30,9 @@ E=10
 
 t=1
 m=100
-n=10
+n=100
 
-image_lane = np.array([0,0,0,0,-1,-1,-1,-2,-2,-3])
+# image_lane = np.array([0,0,0,0,-1,-1,-1,-2,-2,-3])
 
 weight_for_lane = 10   
 
@@ -64,6 +64,15 @@ end_time = 0
 
 # end of lane keep variables
 
+def connect_points_with_lines(points ):
+
+    # # Convert points to NumPy array
+    points_array = np.array(points, dtype=np.int32).reshape((-1, 1, 2))
+
+    # Draw lines connecting the points
+    cv2.polylines(annotated_frame, points_array, isClosed=1, color=(0, 255, 0), thickness=12)
+
+
 
 def floor_to_nearest_5(number):
     return 10 * (number // 10)
@@ -89,12 +98,14 @@ def merge_dicts(dict1, dict2,pos):
 model = YOLO('lane.pt')
 
 # Open the video file
-cap = cv2.VideoCapture("1.MOV")
+cap = cv2.VideoCapture(0)
 
 # Get the width and height
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 # print(width,height)
+
+
 
 # Loop through the video frames
 while cap.isOpened():
@@ -105,61 +116,91 @@ while cap.isOpened():
     if success:
         # Run YOLOv8 inference on the frame
         results = model.predict(frame, conf=0.1, classes=[1])
+        try:
+            annotated_frame = results[0].plot()
 
-        annotated_frame = results[0].plot()
-        mask=results[0].masks.data.cpu().numpy()[0]
+            mask=results[0].masks.data.cpu().numpy()[0]
 
-        # Convert annotated_frame to RGB
-        # annotated_frame = results[0].masks.data.cpu().numpy()[0]
-        # print(results[0].masks.xy[0])
-        # print(len(results[0].masks.xy[0]))
+            # Convert annotated_frame to RGB
+            # annotated_frame = results[0].masks.data.cpu().numpy()[0]
+            # print(results[0].masks.xy[0])
+            # print(len(results[0].masks.xy[0]))
 
-        left = dict()
-        right=dict()
+            left = dict()
+            right=dict()
 
-        line_color=(0, 255, 0)
-        v_line_x_pos=int(width/2 -400)
-        # Draw the vertical line on the image
-        cv2.line(annotated_frame, (v_line_x_pos, 0), (v_line_x_pos, height), line_color, 5)
+            line_color=(0, 255, 0)
+            v_line_x_pos=int(width/2 -400)
+            # Draw the vertical line on the image
+            cv2.line(annotated_frame, (v_line_x_pos, 0), (v_line_x_pos, height), line_color, 5)
+
+            points=[]
+            img = np.zeros((width, height), dtype=np.uint8)
+            for i in range(int(len(results[0].masks.xy[0]))):
+                x1, y1 = results[0].masks.xy[0][i]
+                x1=int(x1)
+                y1=int(y1)
+                points.append((x1,y1))
+                
+                if len(points)>=2:
+                    # cv2.line(annotated_frame,points[-1],points[-2],(255,0,0),10)
+                    points_array = np.array([points], dtype=np.int32)
+                    cv2.polylines(img, [points_array], isClosed=False, color=(255, 0, 0), thickness=10)
+
+                    # Find all non-zero pixels (points) in the image
+                    # non_zero_points = np.column_stack(np.where(img > 0))
 
 
-        for i in range(int(len(results[0].masks.xy[0]))):
-            x1, y1 = results[0].masks.xy[0][i]
+                    # for point in non_zero_points:
+                    #     cv2.circle(annotated_frame, tuple(point), 5, (0, 255, 0), -1)
 
-            if x1<=v_line_x_pos:
-                left[floor_to_nearest_5(y1)]=x1
+                    # print(non_zero_points)
 
-            else:
-                right[floor_to_nearest_5(y1)]=x1
+                    # img1 = cv2.resize(img, (640, 480))
+                    # cv2.imshow("YOLOv8 ",img)
 
+                
 
-        left=dict(sorted(left.items()))
-        right=dict(sorted(right.items()))
-        dispacement_dic= merge_dicts(left, right,v_line_x_pos)  
-        dispacement_dic=dict(sorted(dispacement_dic.items()))   #  sort from top to bottom
-        # dispacement_dic = dict(sorted(dispacement_dic.items(), reverse=True))  #  sort from bottom to top
+                if x1<=v_line_x_pos:
+                    left[floor_to_nearest_5(y1)]=x1
 
-        #....................................................................for noty...........................
-        #  don't change the video, it may not work. trained for few dataset
-        # press any key to go to next frame. (select the frames window before press any key)
-        #  press q to exit
-        #  change waitkey(1) at the end of this code to play as a video 
+                else:
+                    right[floor_to_nearest_5(y1)]=x1
 
-        #this gives how much displacement values get
-        length_of_displacement_list=len(dispacement_dic)
+                
+            # left_list = [left[key] for key in left]
+                    
+            # connect_points_with_lines(points)
 
-        # following list is the displacement values from top of the screen to bottom. 
-        # change the sorting method in line 77 in order to sort from bottom of the screen to top
-        displacement_list = [dispacement_dic[key] for key in dispacement_dic]
+            left=dict(sorted(left.items()))
+            right=dict(sorted(right.items()))
+            dispacement_dic= merge_dicts(left, right,v_line_x_pos)  
+            dispacement_dic=dict(sorted(dispacement_dic.items()))   #  sort from top to bottom
+            # dispacement_dic = dict(sorted(dispacement_dic.items(), reverse=True))  #  sort from bottom to top
 
-        # print(length_of_displacement_list)
-        # print("displacement ",dispacement_dic)
-        # print("displacement list",displacement_list)
-        n= len(displacement_list)
-        image_lane=displacement_list
+            #....................................................................for noty...........................
+            #  don't change the video, it may not work. trained for few dataset
+            # press any key to go to next frame. (select the frames window before press any key)
+            #  press q to exit
+            #  change waitkey(1) at the end of this code to play as a video 
 
-        # lane keep algorithm
-        for i in range (m) :
+            #this gives how much displacement values get
+            length_of_displacement_list=len(dispacement_dic)
+
+            # following list is the displacement values from top of the screen to bottom. 
+            # change the sorting method in line 77 in order to sort from bottom of the screen to top
+            displacement_list = [dispacement_dic[key] for key in dispacement_dic]
+
+            # print(length_of_displacement_list)
+            # print("displacement ",dispacement_dic)
+            # print("displacement list",displacement_list)
+            n= len(displacement_list)
+            image_lane=displacement_list
+
+            # lane keep algorithm==============================
+            # for i in range (m) :
+
+            print(image_lane)
 
             strt_time = time.time()
 
@@ -213,22 +254,28 @@ while cap.isOpened():
 
             # vector[0] = image_lane[0]
 
+            end_time = time.time()
+
 
 
             # end of lane keep algorithm
 
 
 
-        # add any thing here
+            # add any thing here
 
-        # following codes for display in a window
-        annotated_frame = cv2.resize(annotated_frame, (640, 480))
+            # following codes for display in a window
+            annotated_frame = cv2.resize(annotated_frame, (640, 480))
+            cv2.imshow("YOLOv8 Inference2",annotated_frame)
+        except:
+            cv2.imshow("YOLOv8 Inference2",frame)
 
-        cv2.imshow("YOLOv8 Inference2",annotated_frame)
+        
 
         # Break the loop if 'q' is pressed
         if cv2.waitKey(0) & 0xFF == ord("q"): #........................change cv2.waitKey(1) to play video auto
             break
+        
     else:
         # Break the loop if the end of the video is reached
         break
