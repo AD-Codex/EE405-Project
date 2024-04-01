@@ -1,4 +1,0 @@
-0= broken white line
-1= driving lane
-2= margin white line
-3= road
