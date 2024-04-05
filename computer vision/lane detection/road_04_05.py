@@ -68,9 +68,6 @@ def get_road_edges(transform):
 model1=YOLO('best.pt')
 
 # cap = cv2.VideoCapture(0)
-# test_straight_line
-# bend
-# T_junction
 cap = cv2.VideoCapture("T_junction.mp4")
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -120,20 +117,13 @@ while cap.isOpened():
                 color_transform_frame = cv2.cvtColor(transform, cv2.COLOR_GRAY2BGR)
                 
 
+                # v_line_x_pos=int(width/4)
+                v_line_x_pos=int(width1/2)
+
                 # Initialize empty lists for coordinates on the right side and left side
                 right_side = []
                 left_side = []
                 filtered=[]
-
-
-                # Generate 25 equally spaced floating-point values between 0 and 800
-                # floating_values = np.linspace(0, height1, 20)
-
-
-                # Convert the floating-point values to integers
-                # y_values = floating_values.astype(int)
-                # v_line_x_pos=int(width/4)
-                v_line_x_pos=int(width1/2)
 
                 # Iterate through the list of coordinates
                 for coord in sorted_data:
@@ -170,22 +160,6 @@ while cap.isOpened():
 
                 # Calculate the average x value for each y value and append them to a new list
                 right_side_new = [(x_min, y) for y, x_min in y_x_min_right.items()]
-                # print("filtered ", sorted_data)
-
-                # filtered_data = [sorted_data[0]]
-
-                # for i in range(1, len(sorted_data)):
-                #     if sorted_data[i][0] - filtered_data[-1][0] >= 5:
-                #         filtered_data.append(sorted_data[i])
-
-                # print("filtered data",filtered_data)   
-
-                # # Calculate the differences between consecutive x values
-                # differences = [filtered_data[i+1][0] - filtered_data[i][0] for i in range(len(filtered_data)-1)]
-
-                # # Find the maximum difference
-                # max_difference_index = differences.index(max(differences))
-
 
                 midpoints = []
 
@@ -199,11 +173,7 @@ while cap.isOpened():
                             # Append the midpoint coordinates to the midpoints list
                             midpoints.append((avg_x, left_coord[1]))  # or right_coord[1], as they are the same
 
-                
 
-                # midpoints=quard_regresion(midpoints)
-                # # Print the list of midpoints
-                
                 # Create a dictionary to store the sum of x values and the count of occurrences for each y value
                 y_x_sum_count = {}
 
@@ -295,11 +265,15 @@ while cap.isOpened():
 
                 # Filter the dictionary based on the floating values
                 filtered_dict = {key: value for key, value in displacement_dict.items() if key in floating_values_set}
-                cord_dict = [(value, key) for key, value in filtered_dict.items()]
+                cord_list = [(value+v_line_x_pos, key) for key, value in filtered_dict.items()]
 
                 displacement_list = list(filtered_dict.values())
                 print("list", displacement_list)
-                print("coordinates", cord_dict)
+                print("coordinates", cord_list)
+
+                # for a in cord_list:
+                #     x,y=a
+                #     cv2.circle(color_transform_frame, (x, y), 5, (100, 20, 25), -1)
 
                 
                 n= len(displacement_list)
