@@ -1,18 +1,20 @@
-data = [(12, 4), (23, 5), (44, 7), (55, 8)]
+import cv2
+import numpy as np
 
-# Create a set of existing y values
-existing_y_values = set(y for _, y in data)
 
-# Find the missing y values
-missing_y_values = set(range(min(existing_y_values), max(existing_y_values) + 1)) - existing_y_values
-print(missing_y_values)
-# Get the highest x value for each missing y value
-missing_entries = [(max(x for x, y in data if y == missing_y), missing_y) for missing_y in missing_y_values]
+# Load an image from file
+image = cv2.imread('mask.jpg',0)
 
-# Append the missing entries to the original data
-data += missing_entries
+# Check if the image was successfully loaded
+if image is not None:
+    # Display the image in a window
+    cv2.imshow('Image', image)
+    edges= left_edge(image)
+    cv2.imshow('left', left)
 
-# Sort the data based on y values
-data.sort(key=lambda x: x[1])
-
-print(data)
+    # Wait for any key to be pressed
+    cv2.waitKey(0)
+    # Close all OpenCV windows
+    cv2.destroyAllWindows()
+else:
+    print("Error: Unable to load image.")

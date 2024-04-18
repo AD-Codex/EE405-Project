@@ -1,7 +1,7 @@
 import cv2
 from ultralytics import YOLO
 import numpy as np
-# from linear_regression import *
+import math
 
 def perspective_transform(mask_raw,width,height):
     # Convert single channel grayscale to 3 channel image
@@ -52,6 +52,8 @@ def perspective_transform(mask_raw,width,height):
     return transform
 
 def get_road_edges(transform):
+    # this function return the coordinates of the road edges
+
     indices = np.where(transform != [0])
 
     # Combine the lists into a list of tuples
@@ -63,6 +65,60 @@ def get_road_edges(transform):
     sorted_data = sorted(combined_list, key=lambda x: x[0])
     return sorted_data
 
+def junction_detection(circle_radius_list,x,y_center_for_circles,left_side_new,right_side_new):
+    junction_count_left=0
+    junction_count_right=0
+    
+    junction_data={}
+
+    for radius in circle_radius_list:
+        cv2.circle(color_transform_frame, (x, y_center_for_circles), radius, (0, 0, 255), 0)
+
+        distance_threshold=radius                  
+        y_old_left=0
+        bend_threshold=20
+        # left_jun_list=[]
+
+        left_junction_list=[]
+        right_junction_list=[]
+        for b in left_side_new:
+            x3,y3 =b
+
+            if y3<=y_center_for_circles+1+distance_threshold and y3>=y_center_for_circles-1-distance_threshold:
+                # cv2.circle(color_transform_frame, (x3, y3), 2, (255, 0, 255), -1)
+                distance = math.ceil(np.sqrt((x - x3)**2 + (y_center_for_circles - y3)**2))
+                # print("distance ",distance)
+                if distance==distance_threshold:
+                    if abs(y_old_left - y3) > bend_threshold or y_old_left == 0:
+                        y_old_left=y3
+                        junction_count_left+=1
+                        cv2.circle(color_transform_frame, (x3, y3), 5, (0, 255, 255), -1)
+                        left_junction_list.append((x3,y3))
+                        # print("left x3,y3",x3,y3)
+
+
+        y_old_right=0
+
+        for b in right_side_new:
+            x3,y3 =b
+
+            if y3<=251+distance_threshold and y3>=249-distance_threshold:
+                # cv2.circle(color_transform_frame, (x3, y3), 2, (255, 0, 255), -1)
+                distance = int(np.sqrt((x - x3)**2 + (y_center_for_circles - y3)**2))
+                # print("distance ",distance)
+                if distance==distance_threshold:
+                    if abs(y_old_right - y3) > bend_threshold or y_old_right == 0:
+                        y_old_right=y3
+                        junction_count_right+=1
+                        cv2.circle(color_transform_frame, (x3, y3), 5, (0, 255, 255), -1)
+                        right_junction_list.append((x3,y3))
+                        # print("right x3,y3",x3,y3)
+
+        junction_data[radius]=(left_junction_list,right_junction_list)
+    # print(junction_data)
+    return junction_data
+
+# def circule_draw():
 
 # model = YOLO('yolov8n-seg.pt')
 model1=YOLO('best.pt')
@@ -192,65 +248,31 @@ while cap.isOpened():
                 for a in averages:
                     x, y = a
                     # OpenCV uses BGR color format, so (0, 0, 255) represents red color
-                    if y==250:
-                        cv2.circle(color_transform_frame, (x, y), 5, (0, 0, 255), -1)  # -1 specifies to fill the circle
-                        cv2.circle(color_transform_frame, (x, y), 70, (0, 0, 255), 0)  # 0 specifies not to fill the circle
-                        cv2.circle(color_transform_frame, (x, y), 100, (0, 0, 255), 0)
-                        cv2.circle(color_transform_frame, (x, y), 130, (0, 0, 255), 0)
-                        cv2.circle(color_transform_frame, (x, y), 160, (0, 0, 255), 0)
-                        cv2.circle(color_transform_frame, (x, y), 200, (0, 0, 255), 0)
+                    y_center_for_circles=250
 
-                        distance_threshold=200
+                    circle_radius_list=[70,100,130,160,200]
+                    if y==y_center_for_circles:
+                        cv2.circle(color_transform_frame, (x, y), 5, (0, 0, 255), -1)  # -1 specifies to fill the circle
+                        
 
                         junction_count_left=0
-                        y_old_left=0
-                        bend_threshold=20
-                        # left_jun_list=[]
-
-                        for b in left_side_new:
-                            x3,y3 =b
-
-                            if y3<=251+distance_threshold and y3>=249-distance_threshold:
-                                # cv2.circle(color_transform_frame, (x3, y3), 2, (255, 0, 255), -1)
-                                distance = int(np.sqrt((x - x3)**2 + (y - y3)**2))
-                                # print("distance ",distance)
-                                if distance==distance_threshold:
-                                    if abs(y_old_left - y3) > bend_threshold or y_old_left == 0:
-                                        y_old_left=y3
-                                        junction_count_left+=1
-                                        cv2.circle(color_transform_frame, (x3, y3), 5, (0, 255, 255), -1)
-                                        # print("left x3,y3",x3,y3)
-
                         junction_count_right=0
-                        y_old_right=0
 
-                        for b in right_side_new:
-                            x3,y3 =b
+                        junction_dictionary=junction_detection(circle_radius_list,x,y_center_for_circles,left_side_new,right_side_new)
+                        # print(junction_dictionary)
 
-                            if y3<=251+distance_threshold and y3>=249-distance_threshold:
-                                # cv2.circle(color_transform_frame, (x3, y3), 2, (255, 0, 255), -1)
-                                distance = int(np.sqrt((x - x3)**2 + (y - y3)**2))
-                                # print("distance ",distance)
-                                if distance==distance_threshold:
-                                    if abs(y_old_right - y3) > bend_threshold or y_old_right == 0:
-                                        y_old_right=y3
-                                        junction_count_right+=1
-                                        cv2.circle(color_transform_frame, (x3, y3), 5, (0, 255, 255), -1)
-                                        # print("right x3,y3",x3,y3)
+                        if len(junction_dictionary[200][0])>2 and len(junction_dictionary[200][0]) !=0:
+                            image = cv2.putText(color_transform_frame, 'left Turn', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 100, 150), 1, cv2.LINE_AA)
+                        elif len(junction_dictionary[200][1])>2 and len(junction_dictionary[200][1]) !=0:
+                            image = cv2.putText(color_transform_frame, 'Right Turn', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 100, 150), 1, cv2.LINE_AA)
 
-
+                        
                     else:
                         cv2.circle(color_transform_frame, (x, y), 2, (255, 0, 0), -1)  # -1 specifies to fill the circle
                     # cv2.circle(annotated_frame, (x, y), 5, (255, 255, 255), -1) 
 
-                # print("junction left", junction_count_left)
-                # print("junction right", junction_count_right)
 
-                if junction_count_left>2 and junction_count_left!=0:
-                    image = cv2.putText(color_transform_frame, 'left Turn', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 100, 150), 1, cv2.LINE_AA)
-                elif junction_count_right>2 and junction_count_right!=0:
-                    image = cv2.putText(color_transform_frame, 'Right Turn', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 100, 150), 1, cv2.LINE_AA)
-              
+
 
 
                 cv2.line(color_transform_frame, (v_line_x_pos, 0), (v_line_x_pos, height), (0,255,0), 2)
@@ -286,6 +308,7 @@ while cap.isOpened():
 
                 # Show the masked part of the image
                 cv2.imshow("mask", mask_raw)
+                cv2.imwrite('mask_image.jpg', mask_raw)
                 resized_mask = cv2.resize(mask_raw, (int(mask_raw.shape[1]/4), int(mask_raw.shape[0]/4)))
                 # print("mask shape",resized_mask.shape)
                 cv2.imshow("transpose",color_transform_frame)

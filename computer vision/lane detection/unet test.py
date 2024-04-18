@@ -1,8 +1,17 @@
 import cv2
 import numpy as np
+import keras
 from keras.models import Model
 from keras.layers import Input, Conv2D, MaxPooling2D, UpSampling2D, concatenate, Conv2DTranspose, BatchNormalization, Dropout, Lambda
 import tensorflow as tf
+from keras.optimizers import Adam
+
+# Define a learning rate schedule
+learning_rate_schedule = keras.optimizers.schedules.CosineDecay(
+    initial_learning_rate=0.001,
+    decay_steps=10000,
+)
+
 
 print(tf.__version__)
 ################################################################
@@ -63,7 +72,9 @@ def simple_unet_model(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS):
     outputs = Conv2D(1, (1, 1), activation='sigmoid')(c9)
 
     model = Model(inputs=[inputs], outputs=[outputs])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    optimizer = Adam(learning_rate=learning_rate_schedule)
+    
+    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     # model.summary()
 
     return model
@@ -83,9 +94,9 @@ def get_model():
 model = get_model()
 
 
-model.load_weights('road.hdf5') 
+model.load_weights('road_best_so_far_04_10.hdf5') 
 
-cap = cv2.VideoCapture("2.mp4")
+cap = cv2.VideoCapture("test.mp4")
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
